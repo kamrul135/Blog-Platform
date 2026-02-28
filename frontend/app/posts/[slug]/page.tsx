@@ -1,4 +1,6 @@
-import { useRouter } from "next/router";
+"use client";
+
+import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import api from "../../../lib/api";
 
@@ -10,8 +12,8 @@ interface Post {
 }
 
 export default function PostPage() {
-  const router = useRouter();
-  const { slug } = router.query;
+  const params = useParams();
+  const slug = params.slug as string;
   const [post, setPost] = useState<Post | null>(null);
 
   useEffect(() => {
