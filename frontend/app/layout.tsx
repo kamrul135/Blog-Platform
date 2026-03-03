@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider, AuthContext } from "../context/AuthContext";
+import { AuthProvider } from "../context/AuthContext";
 import Link from "next/link";
+import Navbar from "../components/Navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,34 +32,8 @@ export default function RootLayout({
       >
         <AuthProvider>
           <header className="p-4 bg-gray-100">
-            <nav className="flex gap-4 items-center">
-              <Link href="/">Home</Link>
-              {/** show login/register only when not authenticated */}
-              <AuthContext.Consumer>
-                {(auth) => {
-                  if (auth && auth.user) {
-                    return (
-                      <>
-                        <span>Welcome, {auth.user.username}</span>
-                        <button
-                          className="text-blue-600"
-                          onClick={() => auth.logout()}
-                        >
-                          Logout
-                        </button>
-                      </>
-                    );
-                  } else {
-                    return (
-                      <>
-                        <Link href="/login">Login</Link>
-                        <Link href="/register">Register</Link>
-                      </>
-                    );
-                  }
-                }}
-              </AuthContext.Consumer>
-            </nav>
+            {/* Navbar is a client component handling auth state */}
+            <Navbar />
           </header>
           <main className="p-4">{children}</main>
         </AuthProvider>

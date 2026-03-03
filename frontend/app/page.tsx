@@ -11,7 +11,7 @@ interface Post {
 }
 
 export default function Home() {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<Post[] | null>(null);
 
   useEffect(() => {
     api
@@ -19,15 +19,18 @@ export default function Home() {
       .then((res) => {
         setPosts(res.data);
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+        setPosts([]);
+      });
   }, []);
 
   return (
     <div className="container mx-auto">
       <h1 className="text-3xl font-bold my-4">Latest Posts</h1>
-      {posts.length === 0 && <p>No posts found.</p>}
+      {posts && posts.length === 0 && <p>No posts found.</p>}
       <ul className="space-y-2">
-        {posts.map((post) => (
+        {posts?.map((post) => (
           <li key={post.id}>
             <Link href={`/posts/${post.slug}`}>{post.title}</Link>
           </li>

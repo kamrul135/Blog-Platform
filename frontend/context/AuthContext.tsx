@@ -1,54 +1,54 @@
 "use client";
 
 import React, { createContext, useState, useEffect, ReactNode } from "react";
+import api from "../lib/api";
+
+export interface AuthUser {
+  id: number;
+  username: string;
+  email: string;
+}
 
 interface AuthContextType {
-  user: any;
+  user: AuthUser | null;
+  loading: boolean;
   login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    // Restore user info from localStorage (tokens are stored in HttpOnly cookies)
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      try { setUser(JSON.parse(stored)); } catch {}
     }
+    setLoading(false);
   }, []);
 
   const login = async (username: string, password: string) => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/auth/token/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await res.json();
-    if (data.access) {
-      localStorage.setItem("access_token", data.access);
-      localStorage.setItem("refresh_token", data.refresh);
-      // fetch user profile
-      const profile = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/users/1/`, {
-        headers: { Authorization: `Bearer ${data.access}` },
-      });
-      const userData = await profile.json();
-      setUser(userData);
-      localStorage.setItem("user", JSON.stringify(userData));
-    }
+    // POST to backend - sets HttpOnly cookies automatically
+    await api.post("/auth/token/", { username, password });
+    // Fetch user info (cookie attached automatically)
+    const users = await api.get(`/users/?username=${username}`);
+    const userData: AuthUser = Array.isArray(users) ? users[0] : users;
+    setUser(userData);
+    localStorage.setItem("user", JSON.stringify(userData));
   };
 
-  const logout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("user");
+  const logout = async () => {
+    try { await api.post("/auth/logout/"); } catch {}
     setUser(null);
+    localStorage.removeItem("user");
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
