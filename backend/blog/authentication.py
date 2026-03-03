@@ -4,6 +4,9 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 class CookieJWTAuthentication(JWTAuthentication):
     """Read JWT access token from HttpOnly cookie instead of Authorization header."""
 
-    def get_raw_token(self, header):
-        # ignore incoming header; pull from cookies
-        return self.request.COOKIES.get("access_token")
+    def authenticate(self, request):
+        raw_token = request.COOKIES.get("access_token")
+        if raw_token is None:
+            return None
+        validated_token = self.get_validated_token(raw_token)
+        return self.get_user(validated_token), validated_token

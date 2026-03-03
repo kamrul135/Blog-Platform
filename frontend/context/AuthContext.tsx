@@ -34,9 +34,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (username: string, password: string) => {
     // POST to backend - sets HttpOnly cookies automatically
     await api.post("/auth/token/", { username, password });
-    // Fetch user info (cookie attached automatically)
-    const users = await api.get(`/users/?username=${username}`);
-    const userData: AuthUser = Array.isArray(users) ? users[0] : users;
+    // Fetch current user info via dedicated /auth/me/ endpoint
+    const userData: AuthUser = await api.get("/auth/me/") as AuthUser;
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
   };

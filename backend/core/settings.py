@@ -152,12 +152,16 @@ REST_FRAMEWORK = {
 }
 
 # CORS configuration
-CORS_ALLOW_ALL_ORIGINS = True  # adjust for production
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+CORS_ALLOW_CREDENTIALS = True  # required for cookies
 
-# Security settings
-CSRF_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
+# Security settings (relaxed for local dev; tighten for production)
+CSRF_COOKIE_HTTPONLY = False   # must be False so JS can read the csrftoken cookie
+CSRF_COOKIE_SECURE = False     # set True in production (HTTPS only)
+SESSION_COOKIE_SECURE = False  # set True in production
 
 # Simple JWT can be configured to use cookies; we'll set flags and assign them manually in views
 SIMPLE_JWT = {

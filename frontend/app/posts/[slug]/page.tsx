@@ -16,7 +16,12 @@ interface Post {
   slug: string;
   content: string;
   author: Author;
+  created?: string;
   created_at?: string;
+  view_count?: number;
+  likes_count?: number;
+  is_liked?: boolean;
+  reading_time?: number;
 }
 
 interface Comment {
@@ -35,14 +40,41 @@ export default function PostPage() {
   const [body, setBody] = useState("");
   const [commentError, setCommentError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+  const [liking, setLiking] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
-    api.get(`/posts/${slug}/`).then((data: any) => setPost(data));
+    api.get(`/posts/${slug}/`).then((data: any) => {
+      setPost(data);
+      setLiked(data.is_liked ?? false);
+      setLikesCount(data.likes_count ?? 0);
+    });
     api.get(`/comments/?post=${slug}`).then((data: any) => {
       setComments(Array.isArray(data) ? data : data.results ?? []);
     });
   }, [slug]);
+
+  const handleLike = async () => {
+    if (!auth?.user || !post || liking) return;
+    setLiking(true);
+    // optimistic update
+    const newLiked = !liked;
+    setLiked(newLiked);
+    setLikesCount((c) => c + (newLiked ? 1 : -1));
+    try {
+      const res: any = await api.post(`/posts/${post.slug}/like/`);
+      setLiked(res.liked);
+      setLikesCount(res.likes_count);
+    } catch {
+      // revert on error
+      setLiked(!newLiked);
+      setLikesCount((c) => c + (newLiked ? -1 : 1));
+    } finally {
+      setLiking(false);
+    }
+  };
 
   const handleComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,10 +97,30 @@ export default function PostPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-3xl font-bold my-4">{post.title}</h1>
-      <p className="text-sm text-gray-500 mb-6">
-        By {post.author?.username ?? "Unknown"}
-        {post.created_at && ` · ${new Date(post.created_at).toLocaleDateString()}`}
-      </p>
+      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 mb-6">
+        <a href={`/users/${post.author?.username}`} className="font-medium text-gray-700 hover:underline">
+          {post.author?.username ?? "Unknown"}
+        </a>
+        {(post.created ?? post.created_at) && (
+          <span>&middot; {new Date((post.created ?? post.created_at)!).toLocaleDateString()}</span>
+        )}
+        {post.reading_time && <span>&middot; {post.reading_time} min read</span>}
+        {post.view_count !== undefined && <span>&middot; {post.view_count} views</span>}
+
+        {/* Like button */}
+        <button
+          onClick={handleLike}
+          disabled={liking || !auth?.user}
+          className={`ml-auto flex items-center gap-1 px-3 py-1 rounded-full border transition ${
+            liked
+              ? "bg-red-50 border-red-300 text-red-500"
+              : "border-gray-300 text-gray-500 hover:border-red-300 hover:text-red-400"
+          } disabled:opacity-50`}
+          title={auth?.user ? (liked ? "Unlike" : "Like") : "Login to like"}
+        >
+          {liked ? "❤️" : "🤍"} {likesCount}
+        </button>
+      </div>
       <div
         className="prose max-w-none"
         dangerouslySetInnerHTML={{ __html: post.content }}

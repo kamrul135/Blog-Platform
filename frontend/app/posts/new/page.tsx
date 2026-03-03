@@ -4,6 +4,12 @@ import { useState, useContext, useEffect } from "react";
 import { AuthContext } from "../../../context/AuthContext";
 import { useRouter } from "next/navigation";
 import api from "../../../lib/api";
+import dynamic from "next/dynamic";
+
+const TipTapEditor = dynamic(() => import("../../../components/TipTapEditor"), {
+  ssr: false,
+  loading: () => <div className="border rounded h-64 flex items-center justify-center text-gray-400">Loading editor...</div>,
+});
 
 export default function NewPostPage() {
   const auth = useContext(AuthContext);
@@ -42,20 +48,19 @@ export default function NewPostPage() {
         <div>
           <label className="block text-sm font-medium mb-1">Title</label>
           <input
-            className="border p-2 w-full rounded"
+            className="border p-2 w-full rounded text-lg"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            placeholder="Post title..."
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Content</label>
-          <textarea
-            className="border p-2 w-full rounded h-64 font-mono"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Write your post content here (HTML supported)..."
-            required
+          <label className="block text-sm font-medium mb-2">Content</label>
+          <TipTapEditor
+            content={content}
+            onChange={setContent}
+            placeholder="Write your post content here..."
           />
         </div>
         <div>

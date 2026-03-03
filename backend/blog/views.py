@@ -1,8 +1,10 @@
 from rest_framework.views import APIView
 from rest_framework import viewsets, permissions, filters, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.middleware import csrf
+from django.shortcuts import get_object_or_404
 
 from .models import User, Category, Tag, Post, Comment
 from .serializers import (
@@ -54,6 +56,32 @@ class LogoutView(APIView):
         return response
 
 
+class MeView(APIView):
+    """Return the currently authenticated user's info."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({'id': user.id, 'username': user.username, 'email': user.email})
+
+
+class ProfileView(APIView):
+    """Return a user's public profile and their published posts."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, username):
+        user = get_object_or_404(User, username=username)
+        posts = Post.objects.filter(author=user, status='published').order_by('-created')
+        from .serializers import PostSerializer
+        serializer = PostSerializer(posts, many=True, context={'request': request})
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'date_joined': user.date_joined,
+            'posts': serializer.data,
+        })
+
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -93,6 +121,25 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        Post.objects.filter(pk=instance.pk).update(view_count=instance.view_count + 1)
+        instance.refresh_from_db()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def like(self, request, slug=None):
+        post = self.get_object()
+        user = request.user
+        if post.likes.filter(pk=user.pk).exists():
+            post.likes.remove(user)
+            liked = False
+        else:
+            post.likes.add(user)
+            liked = True
+        return Response({'liked': liked, 'likes_count': post.likes.count()})
 
     def get_queryset(self):
         qs = super().get_queryset()

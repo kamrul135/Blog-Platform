@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils.text import slugify
 import bleach
+import re
 
 
 class User(AbstractUser):
@@ -70,9 +71,13 @@ class Post(models.Model):
         Category, related_name="posts", on_delete=models.SET_NULL, null=True
     )
     tags = models.ManyToManyField(Tag, related_name="posts", blank=True)
+    likes = models.ManyToManyField(
+        'User', related_name="liked_posts", blank=True
+    )
     status = models.CharField(
         max_length=10, choices=STATUS_CHOICES, default="draft"
     )
+    view_count = models.PositiveIntegerField(default=0)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
@@ -101,6 +106,14 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
+    @property
+    def reading_time(self):
+        """Estimate reading time in minutes (avg 200 wpm)."""
+        plain = re.sub(r'<[^>]+>', '', self.content or '')
+        word_count = len(plain.split())
+        minutes = max(1, round(word_count / 200))
+        return minutes
 
 
 class Comment(models.Model):

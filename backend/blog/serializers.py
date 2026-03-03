@@ -45,20 +45,29 @@ class PostSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
+    likes_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+    reading_time = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
         fields = [
-            "id",
-            "author",
-            "title",
-            "slug",
-            "content",
-            "category",
-            "tags",
-            "status",
-            "created",
-            "updated",
-            "comments",
+            "id", "author", "title", "slug", "content",
+            "category", "tags", "status",
+            "view_count", "likes_count", "is_liked", "reading_time",
+            "created", "updated", "comments",
         ]
-        read_only_fields = ["id", "slug", "created", "updated", "author"]
+        read_only_fields = ["id", "slug", "created", "updated", "author",
+                            "view_count", "likes_count", "is_liked", "reading_time"]
+
+    def get_likes_count(self, obj):
+        return obj.likes.count()
+
+    def get_is_liked(self, obj):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            return obj.likes.filter(pk=request.user.pk).exists()
+        return False
+
+    def get_reading_time(self, obj):
+        return obj.reading_time
