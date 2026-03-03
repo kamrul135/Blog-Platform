@@ -134,7 +134,7 @@ AUTH_USER_MODEL = 'blog.User'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'blog.views.CookieJWTAuthentication',
+        'blog.authentication.CookieJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',

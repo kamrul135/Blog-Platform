@@ -1,7 +1,6 @@
+from rest_framework.views import APIView
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.middleware import csrf
 
@@ -14,12 +13,6 @@ from .serializers import (
     CommentSerializer,
 )
 from .permissions import IsAuthorOrReadOnly
-
-
-class CookieJWTAuthentication(JWTAuthentication):
-    """Read JWT access token from HttpOnly cookie instead of Authorization header."""
-    def get_raw_token(self, header):
-        return self.request.COOKIES.get('access_token')
 
 
 class CookieTokenObtainPairView(TokenObtainPairView):
