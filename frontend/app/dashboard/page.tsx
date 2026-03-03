@@ -19,6 +19,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     if (!auth?.loading && !auth?.user) {
@@ -34,18 +36,29 @@ export default function DashboardPage() {
           const data = res.results ?? res;
           setPosts(Array.isArray(data) ? data : []);
         })
-        .catch(() => setPosts([]))
+        .catch(() => setError("Failed to load your posts."))
         .finally(() => setLoading(false));
     }
   }, [auth?.user]);
 
   const handleDelete = async (slug: string) => {
     if (!confirm("Delete this post?")) return;
-    await api.delete(`/posts/${slug}/`);
-    setPosts((prev) => prev.filter((p) => p.slug !== slug));
+    setDeleteError("");
+    try {
+      await api.delete(`/posts/${slug}/`);
+      setPosts((prev) => prev.filter((p) => p.slug !== slug));
+    } catch {
+      setDeleteError("Failed to delete post. Please try again.");
+    }
   };
 
-  if (loading) return <p className="p-4">Loading...</p>;
+  if (loading) {
+    return (
+      <div className="max-w-3xl mx-auto mt-12 text-center text-gray-500">
+        Loading your posts...
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -59,7 +72,10 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {posts.length === 0 && (
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+      {deleteError && <p className="text-red-500 mb-4">{deleteError}</p>}
+
+      {posts.length === 0 && !error && (
         <p className="text-gray-500">No posts yet. Create your first one!</p>
       )}
 

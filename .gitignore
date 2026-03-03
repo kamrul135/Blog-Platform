@@ -8,6 +8,9 @@ venv/
 .env
 
 # Django
+db.sqlite3
+
+# Django
 *.log
 *.pot
 *.pyc
