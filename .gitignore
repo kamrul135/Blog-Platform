@@ -9,8 +9,9 @@ venv/
 
 # Django
 db.sqlite3
+media/
 
-# Django
+# Logs
 *.log
 *.pot
 *.pyc
@@ -18,6 +19,15 @@ db.sqlite3
 # Node
 node_modules/
 dist/
+
+# Next.js
+.next/
+out/
+tsconfig.tsbuildinfo
+
+# Env files
+.env.local
+.env.*.local
 
 # IDEs
 .vscode/

@@ -5,34 +5,84 @@ import bleach
 import re
 
 
+def avatar_upload_path(instance, filename):
+    """Store avatars at media/avatars/<username>.<ext>"""
+    ext = filename.rsplit('.', 1)[-1].lower()
+    return f"avatars/{instance.username}.{ext}"
+
+
 class User(AbstractUser):
-    # can be extended later with profile fields
-    
+    avatar = models.ImageField(
+        upload_to=avatar_upload_path,
+        blank=True, null=True,
+        help_text="Profile picture",
+    )
+    bio = models.TextField(blank=True, default="")
+    website = models.URLField(blank=True, default="")
+    twitter = models.CharField(max_length=100, blank=True, default="")
+    github = models.CharField(max_length=100, blank=True, default="")
+
     class Meta:
-        # ensure Django knows this is the swappable user model
         swappable = 'AUTH_USER_MODEL'
 
-    # avoid reverse accessor clashes with default auth.User
     groups = models.ManyToManyField(
-        'auth.Group',
-        related_name='blog_user_set',
-        blank=True,
-        help_text='The groups this user belongs to.',
-        verbose_name='groups',
+        'auth.Group', related_name='blog_user_set', blank=True,
+        help_text='The groups this user belongs to.', verbose_name='groups',
     )
     user_permissions = models.ManyToManyField(
-        'auth.Permission',
-        related_name='blog_user_set',
-        blank=True,
-        help_text='Specific permissions for this user.',
-        verbose_name='user permissions',
+        'auth.Permission', related_name='blog_user_set', blank=True,
+        help_text='Specific permissions for this user.', verbose_name='user permissions',
     )
+
+    @property
+    def followers_count(self):
+        return self.followers.count()
+
+    @property
+    def following_count(self):
+        return self.following.count()
+
+
+class Follow(models.Model):
+    follower = models.ForeignKey(User, related_name='following', on_delete=models.CASCADE)
+    following = models.ForeignKey(User, related_name='followers', on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('follower', 'following')
+        ordering = ['-created']
+
+    def __str__(self):
+        return f"{self.follower} → {self.following}"
+
+
+class Notification(models.Model):
+    VERB_CHOICES = (
+        ('like', 'liked your post'),
+        ('comment', 'commented on your post'),
+        ('follow', 'started following you'),
+    )
+    recipient = models.ForeignKey(User, related_name='notifications', on_delete=models.CASCADE)
+    actor = models.ForeignKey(User, related_name='sent_notifications', on_delete=models.CASCADE)
+    verb = models.CharField(max_length=20, choices=VERB_CHOICES)
+    post = models.ForeignKey('Post', null=True, blank=True, on_delete=models.CASCADE)
+    read = models.BooleanField(default=False)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created']
+
+    def __str__(self):
+        return f"{self.actor} {self.verb} → {self.recipient}"
+
 
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=100, unique=True, blank=True)
 
+    class Meta:
+        ordering = ["name"]
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
@@ -46,6 +96,8 @@ class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True)
     slug = models.SlugField(max_length=50, unique=True, blank=True)
 
+    class Meta:
+        ordering = ["name"]
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
@@ -101,7 +153,13 @@ class Post(models.Model):
                 strip=True,
             )
         if not self.slug:
-            self.slug = slugify(self.title)
+            base_slug = slugify(self.title)
+            slug = base_slug
+            counter = 1
+            while Post.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
         super().save(*args, **kwargs)
 
     def __str__(self):

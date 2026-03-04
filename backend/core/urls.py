@@ -16,6 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from blog.admin import admin_site
 from django.views.generic import RedirectView
 from rest_framework import routers
 from blog import views as blog_views
@@ -23,7 +26,12 @@ from rest_framework_simplejwt.views import (
     # keep imported in case other endpoints need them
     TokenVerifyView,
 )
-from blog.views import CookieTokenObtainPairView, CookieTokenRefreshView, LogoutView, MeView, ProfileView
+from blog.views import (
+    CookieTokenObtainPairView, CookieTokenRefreshView, LogoutView,
+    MeView, ProfileView, AvatarUploadView, FollowView,
+    NotificationListView, NotificationMarkReadView, UpdateProfileView,
+    WSTokenView,
+)
 
 router = routers.DefaultRouter()
 router.register(r'users', blog_views.UserViewSet)
@@ -34,11 +42,20 @@ router.register(r'comments', blog_views.CommentViewSet)
 
 urlpatterns = [
     path('', RedirectView.as_view(url='/api/', permanent=False)),
-    path('admin/', admin.site.urls),
+    path('admin/', admin_site.urls),
     path('api/', include(router.urls)),
     path('api/auth/token/', CookieTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/auth/token/refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),
     path('api/auth/logout/', LogoutView.as_view(), name='logout'),
     path('api/auth/me/', MeView.as_view(), name='me'),
-    path('api/users/<str:username>/', ProfileView.as_view(), name='profile'),
+    path('api/auth/me/update/', UpdateProfileView.as_view(), name='update_profile'),
+    path('api/auth/avatar/', AvatarUploadView.as_view(), name='avatar_upload'),
+    path('api/profile/<str:username>/', ProfileView.as_view(), name='profile'),
+    path('api/follow/<str:username>/', FollowView.as_view(), name='follow'),
+    path('api/notifications/', NotificationListView.as_view(), name='notifications'),
+    path('api/notifications/read/', NotificationMarkReadView.as_view(), name='notifications_read'),
+    path('api/auth/ws-token/', WSTokenView.as_view(), name='ws_token'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

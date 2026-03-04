@@ -35,10 +35,23 @@ DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
 
+# ── Django Channels / WebSocket ───────────────────────────────────────────────
+ASGI_APPLICATION = "core.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        # In-memory layer – fine for single-process dev; swap for Redis in prod
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
+
 
 # Application definition
 
 INSTALLED_APPS = [
+    # daphne must be first to override the runserver command with ASGI
+    'daphne',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -49,6 +62,7 @@ INSTALLED_APPS = [
     # third-party
     'rest_framework',
     'corsheaders',
+    'channels',
 
     # local apps
     'blog',
@@ -70,7 +84,7 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -129,6 +143,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # REST framework settings
 AUTH_USER_MODEL = 'blog.User'
 
@@ -155,8 +172,18 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
 ]
 CORS_ALLOW_CREDENTIALS = True  # required for cookies
+
+# Trust the Next.js dev server for CSRF validation on cross-origin requests
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+]
 
 # Security settings (relaxed for local dev; tighten for production)
 CSRF_COOKIE_HTTPONLY = False   # must be False so JS can read the csrftoken cookie

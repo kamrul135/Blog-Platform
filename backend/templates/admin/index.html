@@ -1,0 +1,204 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<style>
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    text-align: center;
+  }
+  .stat-card .value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1d4ed8;
+    line-height: 1.1;
+  }
+  .stat-card .label {
+    font-size: .75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-top: 6px;
+  }
+  .section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #374151;
+    margin: 24px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  .mini-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    margin-bottom: 28px;
+    font-size: .875rem;
+  }
+  .mini-table th {
+    background: #f9fafb;
+    color: #374151;
+    font-weight: 600;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .mini-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #4b5563;
+  }
+  .mini-table tr:last-child td { border-bottom: none; }
+  .badge-green {
+    background:#dcfce7;color:#16a34a;
+    padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;
+  }
+  .export-btn {
+    display:inline-block;margin-bottom:20px;
+    background:#1d4ed8;color:#fff;padding:8px 18px;
+    border-radius:6px;text-decoration:none;font-size:.85rem;font-weight:600;
+  }
+  .export-btn:hover{background:#1e40af;color:#fff;}
+</style>
+
+<h2 style="margin-bottom:20px;font-size:1.4rem;font-weight:700;color:#111827;">
+  📊 Platform Overview
+</h2>
+
+<a href="{% url 'blog_admin:export_stats' %}" class="export-btn">⬇ Export Stats CSV</a>
+
+<!-- Stat Cards -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="value">{{ total_posts }}</div>
+    <div class="label">Total Posts</div>
+  </div>
+  <div class="stat-card">
+    <div class="value" style="color:#16a34a">{{ published_posts }}</div>
+    <div class="label">Published</div>
+  </div>
+  <div class="stat-card">
+    <div class="value" style="color:#d97706">{{ draft_posts }}</div>
+    <div class="label">Drafts</div>
+  </div>
+  <div class="stat-card">
+    <div class="value">{{ total_users }}</div>
+    <div class="label">Total Users</div>
+  </div>
+  <div class="stat-card">
+    <div class="value" style="color:#16a34a">{{ active_users }}</div>
+    <div class="label">Active Users</div>
+  </div>
+  <div class="stat-card">
+    <div class="value">{{ total_comments }}</div>
+    <div class="label">Comments</div>
+  </div>
+  <div class="stat-card">
+    <div class="value" style="color:#dc2626">{{ pending_comments }}</div>
+    <div class="label">Pending Comments</div>
+  </div>
+  <div class="stat-card">
+    <div class="value" style="color:#7c3aed">{{ total_views }}</div>
+    <div class="label">Total Views</div>
+  </div>
+  <div class="stat-card">
+    <div class="value" style="color:#0891b2">{{ new_posts_7d }}</div>
+    <div class="label">New Posts (7d)</div>
+  </div>
+  <div class="stat-card">
+    <div class="value" style="color:#0891b2">{{ new_users_30d }}</div>
+    <div class="label">New Users (30d)</div>
+  </div>
+</div>
+
+<!-- Top Posts by Views -->
+{% if top_posts %}
+<div class="section-title">🔥 Top Posts by Views</div>
+<table class="mini-table">
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Author</th>
+      <th>Views</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for post in top_posts %}
+    <tr>
+      <td><a href="{% url 'blog_admin:blog_post_change' post.pk %}">{{ post.title|truncatechars:60 }}</a></td>
+      <td>{{ post.author.username }}</td>
+      <td><b>{{ post.view_count }}</b></td>
+      <td><span class="badge-green">Published</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<!-- Most Liked Posts -->
+{% if most_liked %}
+<div class="section-title">❤ Most Liked Posts</div>
+<table class="mini-table">
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Author</th>
+      <th>Likes</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for post in most_liked %}
+    <tr>
+      <td><a href="{% url 'blog_admin:blog_post_change' post.pk %}">{{ post.title|truncatechars:60 }}</a></td>
+      <td>{{ post.author.username }}</td>
+      <td><b>{{ post.lc }}</b></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<!-- Recent Comments -->
+{% if recent_comments %}
+<div class="section-title">💬 Recent Comments</div>
+<table class="mini-table">
+  <thead>
+    <tr>
+      <th>Comment</th>
+      <th>Author</th>
+      <th>Post</th>
+      <th>Date</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for comment in recent_comments %}
+    <tr>
+      <td>{{ comment.body|truncatechars:55 }}</td>
+      <td>{{ comment.author.username }}</td>
+      <td><a href="{% url 'blog_admin:blog_post_change' comment.post.pk %}">{{ comment.post.title|truncatechars:35 }}</a></td>
+      <td style="white-space:nowrap">{{ comment.created|date:"M d, Y" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<!-- Standard Django app list below -->
+<hr style="margin:28px 0;border-color:#e5e7eb;">
+<h2 style="font-size:1.1rem;font-weight:700;color:#374151;margin-bottom:16px;">📦 App List</h2>
+{% include "admin/app_list.html" with show_changelinks=True %}
+{% endblock %}
